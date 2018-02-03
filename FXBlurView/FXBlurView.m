@@ -117,10 +117,28 @@
     free(buffer2.data);
     free(tempBuffer);
 
+    CGBitmapInfo oldBitmapInfo = CGImageGetBitmapInfo(imageRef);
+    
+    CGImageAlphaInfo alphaInfo = oldBitmapInfo & kCGBitmapAlphaInfoMask;
+    
+    //Since iOS8 it's not allowed anymore to create contexts with unmultiplied Alpha info
+    if (alphaInfo == kCGImageAlphaLast) {
+        alphaInfo = kCGImageAlphaPremultipliedLast;
+    }
+    if (alphaInfo == kCGImageAlphaFirst) {
+        alphaInfo = kCGImageAlphaPremultipliedFirst;
+    }
+    
+    //reset the bits
+    CGBitmapInfo newBitmapInfo = oldBitmapInfo & ~kCGBitmapAlphaInfoMask;
+    
+    //set the bits to the new alphaInfo
+    newBitmapInfo |= alphaInfo;
+    
     //create image context from buffer
     CGContextRef ctx = CGBitmapContextCreate(buffer1.data, buffer1.width, buffer1.height,
                                              8, buffer1.rowBytes, CGImageGetColorSpace(imageRef),
-                                             CGImageGetBitmapInfo(imageRef));
+                                             newBitmapInfo);
 
     //apply tint
     if (tintColor && CGColorGetAlpha(tintColor.CGColor) > 0.0f)
